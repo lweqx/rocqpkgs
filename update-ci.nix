@@ -12,7 +12,7 @@
 
 let
   inherit (pkgs) lib;
-  inherit (lib.strings) escapeNixString escapeShellArg escape;
+  inherit (lib.strings) escapeNixString escape;
   nixpkgs = pkgs.path;
   system = pkgs.stdenv.hostPlatform.system;
 
@@ -67,17 +67,29 @@ writeShellScript "update-ci" ''
       in
       ''
         # Convert the action file generated as JSON by the toolbox into YAML to store it.
+        # A new step is inserted to generate nixpkgs-toolbox-entry.nix containing the nixpkgs entrypoint expression to be used by the toolbox.
         # There is an extra fix-up step because it expects default.nix, a thin wrapper around coq-nix-toolbox, to exist in the repository.
-        # Nix doesn't seem to like <( ... ) because it trips on the fifo (?), so we resort to writing the nixpkgs entry expression to a temporary file.
         cat ${lib.escapeShellArg actionFile} \
           | ${lib.getExe jq} ${lib.escapeShellArg ''
-            walk(if type == "object" and has("run") then
-              .run |= gsub("nix-build"; "nix-build --extra-experimental-features flakes --expr \"import (builtins.getFlake '''$(readlink -f .)''').inputs.coq-nix-toolbox\" --arg src ./. --arg nixpkgs $(echo ${
+            .jobs[].steps |= [ {
+              name: "Creating the nixpkgs entrypoint expression file",
+              run: "echo ${
                 # A complicated escaping logic because we need to escape:
-                # - for jq's gsub
-                # - for the echo shell command
+                # - for jq's string litteral
+                # - for the shell echo command
                 escape [ "\"" "\\" ] (lib.escapeShellArg nixpkgsEntrypointToolbox)
-              } > ./nixpkgs-toolbox-entry.nix; echo ./nixpkgs-toolbox-entry.nix)")
+              } > /tmp/nixpkgs-toolbox-entry.nix",
+            } ] + .
+          ''} \
+          | ${lib.getExe jq} ${lib.escapeShellArg ''
+            walk(if type == "object" and has("run") then
+              .run |= gsub(
+                "nix-build";
+                "nix-build --extra-experimental-features flakes \\
+                    --expr \"import (builtins.getFlake '''$(readlink -f .)''').inputs.coq-nix-toolbox\" \\
+                    --arg src ./. \\
+                    --arg nixpkgs /tmp/nixpkgs-toolbox-entry.nix"
+              )
               else . end
             )
           ''} \
