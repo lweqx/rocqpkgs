@@ -12,7 +12,7 @@
 
 let
   inherit (pkgs) lib;
-  inherit (lib.strings) escapeNixString escape;
+  inherit (lib.strings) escapeNixString escapeShellArg escape;
   nixpkgs = pkgs.path;
   system = pkgs.stdenv.hostPlatform.system;
 
@@ -67,31 +67,41 @@ writeShellScript "update-ci" ''
       in
       ''
         # Convert the action file generated as JSON by the toolbox into YAML to store it.
-        # A new step is inserted to generate nixpkgs-toolbox-entry.nix containing the nixpkgs entrypoint expression to be used by the toolbox.
+        # A new step is inserted to generate:
+        # - /tmp/nixpkgs-toolbox-entry.nix, containing the nixpkgs entrypoint expression to be used by the toolbox;
+        # - /tmp/nix-build.sh, in order to factorize our new options to nix-build
         # There is an extra fix-up step because it expects default.nix, a thin wrapper around coq-nix-toolbox, to exist in the repository.
         cat ${lib.escapeShellArg actionFile} \
+          | ${lib.getExe jq} ${escapeShellArg ''
+            walk(if type == "object" and has("run") then
+              .run |= gsub("nix-build"; "/tmp/builder.sh")
+              else . end
+            )
+          ''} \
           | ${lib.getExe jq} ${lib.escapeShellArg ''
             .jobs[].steps |= [ {
-              name: "Creating the nixpkgs entrypoint expression file",
+              name: "Creating the nixpkgs entrypoint expression file and builder script",
               run: "echo ${
                 # A complicated escaping logic because we need to escape:
                 # - for jq's string litteral
                 # - for the shell echo command
-                escape [ "\"" "\\" ] (lib.escapeShellArg nixpkgsEntrypointToolbox)
-              } > /tmp/nixpkgs-toolbox-entry.nix",
+                escape [ "\"" "\\" ] (escapeShellArg nixpkgsEntrypointToolbox)
+              } > /tmp/nixpkgs-toolbox-entry.nix
+
+              echo ${
+                escape [ "\"" "\\" ] (escapeShellArg ''
+                  #!/bin/bash
+                  nix-build \
+                    --extra-experimental-features flakes \
+                    --expr "import (builtins.getFlake '''$(readlink -f .)''').inputs.coq-nix-toolbox" \
+                    --arg src ./. \
+                    --arg nixpkgs /tmp/nixpkgs-toolbox-entry.nix \
+                    "$@"
+                '')
+              } > /tmp/builder.sh
+
+              chmod +x /tmp/builder.sh",
             } ] + .
-          ''} \
-          | ${lib.getExe jq} ${lib.escapeShellArg ''
-            walk(if type == "object" and has("run") then
-              .run |= gsub(
-                "nix-build";
-                "nix-build --extra-experimental-features flakes \\
-                    --expr \"import (builtins.getFlake '''$(readlink -f .)''').inputs.coq-nix-toolbox\" \\
-                    --arg src ./. \\
-                    --arg nixpkgs /tmp/nixpkgs-toolbox-entry.nix"
-              )
-              else . end
-            )
           ''} \
           | ${lib.getExe json2yaml} \
           > .github/workflows/nix-action-${bundle}.yml
