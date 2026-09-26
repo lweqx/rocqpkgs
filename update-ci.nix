@@ -4,7 +4,7 @@
   json2yaml,
   jq,
   pkgs,
-  rocqpkgs,
+  selfPath,
   writeShellScript,
   writeText,
   ...
@@ -13,19 +13,19 @@
 let
   inherit (pkgs) lib;
   inherit (lib.strings) escapeNixString escapeShellArg escape;
-  nixpkgs = pkgs.path;
-  system = pkgs.stdenv.hostPlatform.system;
 
   # Nixpkgs to be used by the toolbox.
-  # Rocq packages are injected via an overlay so that the coq-nix-toolbox will local package definitions.
+  # Rocq packages are injected via an overlay so that the coq-nix-toolbox will use local package definitions.
   # This a hack, a proper fix would be to make changes to the toolbox.
-  nixpkgsEntrypointToolbox = ''
-    args:
+  #
+  # It takes as argument a location for this flake.
+  nixpkgsEntrypointToolbox = selfPath: ''
+    { system, ... }@args:
     let
-      rocqpkgs = builtins.getFlake ${escapeNixString rocqpkgs};
-      system = ${escapeNixString system};
+      rocqpkgs = builtins.getFlake ${escapeNixString selfPath};
+      inherit (rocqpkgs.inputs) nixpkgs;
     in
-    import ${nixpkgs} {
+    import nixpkgs {
       inherit system;
       overlays = [
         (_: _: rocqpkgs.packages.''${system})
@@ -40,7 +40,7 @@ let
       src = ./.;
       inherit (pkgs.stdenv.hostPlatform) system;
 
-      nixpkgs = writeText "nixpkgs.nix" nixpkgsEntrypointToolbox;
+      nixpkgs = writeText "nixpkgs.nix" (nixpkgsEntrypointToolbox selfPath);
 
       # This attribute is set by nix-shell.
       inNixShell = true;
@@ -85,8 +85,18 @@ writeShellScript "update-ci" ''
                 # A complicated escaping logic because we need to escape:
                 # - for jq's string litteral
                 # - for the shell echo command
-                escape [ "\"" "\\" ] (escapeShellArg nixpkgsEntrypointToolbox)
+                escape [ "\"" "\\" ] (
+                  escapeShellArg (
+                    # Here, using selfPath does not make sense because
+                    # 1. selfPath is a path to the Nix store, which will not be present on the runner machine.
+                    # 2. selfPath is pinned to the flake before the workflow files we are generating are present;
+                    # Thankfully the CI is run in impure mode, meaning we can just refer to the checked-out repo via its path.
+                    # However, Nix does not support relative path when retrieving a flake. We use a dummy string and we'll replace it right after.
+                    nixpkgsEntrypointToolbox "placeholder-flake-path"
+                  )
+                )
               } > /tmp/nixpkgs-toolbox-entry.nix
+              sed -i \"s|placeholder-flake-path|$(readlink -f .)|\" /tmp/nixpkgs-toolbox-entry.nix
 
               echo ${
                 escape [ "\"" "\\" ] (escapeShellArg ''

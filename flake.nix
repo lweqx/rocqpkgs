@@ -40,10 +40,10 @@
         let
           pkgs = import nixpkgs { inherit system; };
 
-          rocqpkgs = "path:${self.outPath}?narHash=${self.narHash}";
+          selfPath = "path:${self.outPath}?narHash=${self.narHash}";
 
           update-ci = pkgs.callPackage ./update-ci.nix {
-            inherit coq-nix-toolbox rocqpkgs;
+            inherit coq-nix-toolbox selfPath;
           };
         in
         {
