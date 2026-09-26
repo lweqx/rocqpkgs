@@ -1,0 +1,45 @@
+{
+  "nodes": {
+    "coq-nix-toolbox": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1790453344,
+        "narHash": "sha256-FZ8xP2DMfrbsfn7rb8ZxvjGYlN7TP4hnjscSogGlfKo=",
+        "owner": "lweqx",
+        "repo": "coq-nix-toolbox",
+        "rev": "0fe2b6e1d45537632b0d79716e75dca26c4b8c69",
+        "type": "github"
+      },
+      "original": {
+        "owner": "lweqx",
+        "ref": "allow-passing-nixpkgs-directly",
+        "repo": "coq-nix-toolbox",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1790185690,
+        "narHash": "sha256-xJ+X4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "4975466d324710c576dc11ad614684e6bd8cad8e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "coq-nix-toolbox": "coq-nix-toolbox",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
