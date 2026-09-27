@@ -36,16 +36,18 @@ let
 
   evaluateToolbox =
     args:
-    import coq-nix-toolbox {
-      src = ./.;
-      inherit (pkgs.stdenv.hostPlatform) system;
+    import coq-nix-toolbox (
+      {
+        src = ./.;
+        inherit (pkgs.stdenv.hostPlatform) system;
 
-      nixpkgs = writeText "nixpkgs.nix" (nixpkgsEntrypointToolbox selfPath);
+        nixpkgs = writeText "nixpkgs.nix" (nixpkgsEntrypointToolbox selfPath);
 
-      # This attribute is set by nix-shell.
-      inNixShell = true;
-    }
-    // args;
+        # This attribute is set by nix-shell.
+        inNixShell = true;
+      }
+      // args
+    );
 
   inherit (evaluateToolbox { }) bundles;
 
@@ -63,6 +65,7 @@ writeShellScript "update-ci" ''
     lib.map (
       bundle:
       let
+        # TODO: this does not seem to take into account the value of bundle?
         actionFile = actionFor bundle;
       in
       ''
