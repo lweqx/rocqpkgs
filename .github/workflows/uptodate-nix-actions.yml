@@ -1,0 +1,26 @@
+name: Check for an up-to-date Nix CI
+permissions:
+  contents: read
+on:
+  push:
+  pull_request:
+jobs:
+  ci-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Compute Nix CI workflow hash
+        run: |
+          sha1sum .github/workflows/nix-action-*.yml > /tmp/current_workflows
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+      - name: Re-generate the Nix CI
+        run: |
+          nix run .#update-ci
+      - name: Computing the newly generated Nix CI workflow hash
+        run: |
+          sha1sum .github/workflows/nix-action-*.yml > /tmp/expected_workflows
+      - name: Verifying whether the Nix CI is up-to-date
+        run: |
+          diff /tmp/current_workflows /tmp/expected_workflows || (echo "The CI is not up-to-date. Run `nix run .#update-ci` to regenerate it."; exit 1)
