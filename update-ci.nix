@@ -65,7 +65,6 @@ writeShellScript "update-ci" ''
     lib.map (
       bundle:
       let
-        # TODO: this does not seem to take into account the value of bundle?
         actionFile = actionFor bundle;
       in
       ''
