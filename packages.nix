@@ -59,7 +59,7 @@ let
         passthru = (oldAttrs.passthru or { }) // {
           withPackages =
             f:
-            (callPackage ../applications/science/logic/coq/with-packages.nix {
+            (callPackage ./coq/with-packages.nix {
               coq = rocq-core;
             })
               (f self);
