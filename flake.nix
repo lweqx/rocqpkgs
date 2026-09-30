@@ -31,6 +31,9 @@
           inherit (pkgs.ocaml-ng)
             ocamlPackages_4_14
             ocamlPackages_5_5
+            ocamlPackages_4_09
+            ocamlPackages_4_10
+            ocamlPackages_4_12
             ;
         }
       );

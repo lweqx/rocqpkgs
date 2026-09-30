@@ -5,6 +5,9 @@
   fetchzip,
   callPackage,
   newScope,
+  ocamlPackages_4_09,
+  ocamlPackages_4_10,
+  ocamlPackages_4_12,
   ocamlPackages_4_14,
   ocamlPackages_5_5,
   fetchpatch,
@@ -338,5 +341,64 @@ rec {
   rocqPackages_9_3 = mkRocqPackages rocq-core_9_3;
 
   rocqPackages = lib.recurseIntoAttrs rocqPackages_9_1;
-  rocq-core = rocqPackages.rocq-core;
+
+  inherit (rocqPackages) rocq-core coq;
+
+  # Deprecated aliases
+
+  coqPackages = rocqPackages;
+  coqPackages_9_0 = rocqPackages_9_0;
+  coq_9_0 = rocqPackages_9_0.coq;
+  coqPackages_9_1 = rocqPackages_9_1;
+  coq_9_1 = rocqPackages_9_1.coq;
+  coqPackages_9_2 = rocqPackages_9_2;
+  coq_9_2 = rocqPackages_9_2.coq;
+  coqPackages_9_3 = rocqPackages_9_3;
+  coq_9_3 = rocqPackages_9_3.coq;
+
+  inherit
+    (callPackage ./coq-packages.nix {
+      inherit
+        ocamlPackages_4_09
+        ocamlPackages_4_10
+        ocamlPackages_4_12
+        ocamlPackages_4_14
+        ocamlPackages_5_5
+        rocqPackages_9_0
+        rocqPackages_9_1
+        rocqPackages_9_2
+        rocqPackages_9_3
+        rocqPackages
+        ;
+    })
+    mkCoqPackages
+    coqPackages_8_7
+    coq_8_7
+    coqPackages_8_8
+    coq_8_8
+    coqPackages_8_9
+    coq_8_9
+    coqPackages_8_10
+    coq_8_10
+    coqPackages_8_11
+    coq_8_11
+    coqPackages_8_12
+    coq_8_12
+    coqPackages_8_13
+    coq_8_13
+    coqPackages_8_14
+    coq_8_14
+    coqPackages_8_15
+    coq_8_15
+    coqPackages_8_16
+    coq_8_16
+    coqPackages_8_17
+    coq_8_17
+    coqPackages_8_18
+    coq_8_18
+    coqPackages_8_19
+    coq_8_19
+    coqPackages_8_20
+    coq_8_20
+    ;
 }
