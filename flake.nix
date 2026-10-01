@@ -59,6 +59,17 @@
         }
       );
 
+      overlays = {
+        # Overlay to be applied on nixpkgs to merge rocqpkgs in it.
+        # With the overlay, pkgs.rocqPackages & friends are accessible as they were before the introduction of rocqpkgs.
+        nixpkgs =
+          final: prev:
+          let
+            inherit (prev.stdenv.hostPlatform) system;
+          in
+          self.packages.${system};
+      };
+
       formatter = forAllSystems (
         system:
         let
